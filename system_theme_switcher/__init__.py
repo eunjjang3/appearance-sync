@@ -1,18 +1,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-import time
-
 import bpy
 from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy.app.handlers import persistent
 
 from .appearance import AppearanceProbe
+from .notifications import AppearanceObserver
 from . import themes, transition
 
 _probe = AppearanceProbe()
 _original = None
 _applied = None
 _status = "Waiting for macOS appearance"
-_next_poll = 0.0
+_pending = False
+_registered = False
 _force = True
 
 
@@ -21,12 +21,27 @@ def preferences():
     return addon.preferences if addon else None
 
 
+def request_sync():
+    """Wake Blender once; repeated notifications coalesce into one pending read."""
+    global _pending
+    if not _registered:
+        return
+    _pending = True
+    if not bpy.app.timers.is_registered(tick):
+        bpy.app.timers.register(tick, first_interval=0.05, persistent=True)
+
+
+_observer = AppearanceObserver(request_sync)
+
+
 def changed(_self, _context):
-    global _force, _next_poll
+    global _force
     _force = True
-    _next_poll = 0.0
     if _self is not None and not _self.enabled:
+        _observer.close()
+        _probe.close()
         transition.stop(finish=True)
+    request_sync()
 
 
 def sync_mode(mode, prefs):
@@ -44,32 +59,41 @@ def sync_mode(mode, prefs):
 
 
 def tick():
-    global _status, _next_poll
+    """Runs only during initialization, a notification, or a settings change."""
+    global _status, _pending
     prefs = preferences()
     if prefs is None:
-        return 1.0
+        return None
     previous = _status
     try:
         if not prefs.enabled:
+            _observer.close()
             _probe.close()
+            _pending = False
             _status = "Paused — current theme kept"
-            return 1.0
-        if time.monotonic() < _next_poll:
-            return 0.25
+            return None
+        _observer.start()
         if _probe.process is None:
+            if not _pending:
+                return None
+            _pending = False
             _probe.start()
         mode = _probe.poll()
-        if mode is not None:
-            sync_mode(mode, prefs)
-            _next_poll = time.monotonic() + 2.0
+        if mode is None:
+            return 0.05  # Only wait for this one subprocess, not for future OS changes.
+        if _pending:
+            # An event arrived during the read. Discard stale output and read again.
+            return 0.05
+        sync_mode(mode, prefs)
     except Exception as exc:
         _probe.close()
-        _status = f"Error: {exc}"
-        _next_poll = time.monotonic() + 5.0
+        _pending = False
+        _status = f"Error: {exc}. Use Sync Now to retry"
     finally:
         if _status != previous:
             themes.redraw()
-    return 0.25
+    # A reentrant native event during preset application must not be dropped.
+    return 0.05 if _pending else None  # Idle: no recurring timer and no OS query.
 
 
 class STS_Preferences(bpy.types.AddonPreferences):
@@ -98,7 +122,7 @@ class STS_Preferences(bpy.types.AddonPreferences):
         row.operator("sts.restore", icon='LOOP_BACK')
         box = layout.box()
         box.label(text=_status, icon='ERROR' if _status.startswith("Error:") else 'INFO')
-        layout.label(text="Checks about every 2 seconds while Blender is running.")
+        layout.label(text="Follows macOS appearance change notifications.")
         layout.label(text="Restore is available for this session only.")
 
 
@@ -187,18 +211,21 @@ def before_load(_dummy):
 
 
 def register():
-    global _original, _applied, _status, _force, _next_poll
+    global _original, _applied, _status, _force, _pending, _registered
     _original, _applied = None, None
     _status = "Waiting for macOS appearance"
-    _force, _next_poll = True, 0.0
+    _force, _pending = True, False
     for cls in _CLASSES:
         bpy.utils.register_class(cls)
-    bpy.app.timers.register(tick, first_interval=1.0, persistent=True)
+    _registered = True
+    request_sync()
     bpy.app.handlers.load_pre.append(before_load)
 
 
 def unregister():
-    global _original, _applied
+    global _original, _applied, _registered, _pending
+    _registered, _pending = False, False
+    _observer.close()
     if bpy.app.timers.is_registered(tick):
         bpy.app.timers.unregister(tick)
     _probe.close()

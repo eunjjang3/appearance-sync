@@ -115,7 +115,7 @@ print("DETECTED:", addon._status)
 
 # A detector error should remain visible and preserve the previous theme.
 before_error = themes.capture_theme()
-addon._next_poll = 0
+addon.request_sync()
 from unittest.mock import patch
 with patch.object(addon._probe, "start", side_effect=RuntimeError("test detection failure")):
     addon.tick()
@@ -126,7 +126,7 @@ with tempfile.TemporaryDirectory() as directory:
     blend = str(Path(directory) / "timer-lifecycle.blend")
     bpy.ops.wm.save_as_mainfile(filepath=blend)
     bpy.ops.wm.open_mainfile(filepath=blend)
-    check("timer survives opening a blend file", bpy.app.timers.is_registered(addon.tick))
+    check("pending one-shot timer survives opening a blend file", bpy.app.timers.is_registered(addon.tick))
 
 addon.unregister()
 check("timer removed on disable", not bpy.app.timers.is_registered(addon.tick))

@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 id = "system_theme_switcher"
-version = "0.2.0"
+version = "0.1.3"
 name = "System Theme Switcher"
 tagline = "Switch existing light and dark themes with macOS appearance"
 maintainer = "System Theme Switcher contributors"

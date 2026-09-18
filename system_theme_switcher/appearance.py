@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Nonblocking macOS appearance probe. No Blender calls or worker threads."""
+"""One-shot nonblocking macOS appearance probe (invoked on notifications). No Blender calls or worker threads."""
 import os
 import subprocess
 import sys

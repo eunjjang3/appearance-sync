@@ -1,3 +1,18 @@
+# Verification — 0.1.3
+
+Version set to 0.1.3 at the user’s explicit request. This package includes event-driven detection and fixed 0.35-second transitions.
+
+- 85 checks passed: 14 Python tests (including 6 actual macOS distributed-notification tests), 26 Blender integration checks, 25 transition checks, and 20 notification integration checks.
+- A private test notification name prevents test traffic from affecting other apps or the user's active theme switcher.
+- Native tests verify main-thread callback delivery, duplicate registration prevention, unsubscription, reopening, and idle silence.
+- Blender checks verify one startup read, zero recurring timer/child process at rest, no reads beyond the old polling interval, notification-triggered reads, burst coalescing, follow-up reads when events arrive during an outstanding query, pause/resume cleanup, visible read failures, event-based recovery, and disable cleanup.
+- A separate factory-startup Blender GUI process passed an actual run-loop smoke test: one initial query, no idle query, a native test notification, one additional query, completed transition, no remaining detection timer, and released observer on disable. The process then exited.
+- Existing unit and transition regressions passed. OS settings were not toggled; actual appearance-change notification delivery remains a manual end-to-end check. The appearance notification name is de facto, not an Apple-guaranteed constant.
+- Blender extension build and ZIP validation passed for `system_theme_switcher-0.1.3.zip`; archive contents include the native observer and fixed-duration transition, with no Python caches.
+- Version changed to 0.1.3 as requested; no tags were created. Prior package checks below are historical.
+
+## Prior verification
+
 # Verification — 0.2.0
 
 Tested on Blender 5.0.1, macOS Sequoia 15.7.4, arm64.
