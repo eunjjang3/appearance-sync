@@ -1,0 +1,17 @@
+schema_version = "1.0.0"
+id = "system_theme_switcher"
+version = "0.2.0"
+name = "System Theme Switcher"
+tagline = "Switch existing light and dark themes with macOS appearance"
+maintainer = "System Theme Switcher contributors"
+type = "add-on"
+tags = ["User Interface"]
+blender_version_min = "5.0.0"
+license = ["SPDX:GPL-3.0-or-later"]
+platforms = ["macos-arm64", "macos-x64"]
+
+[permissions]
+files = "Read locally installed theme presets and extension manifests"
+
+[build]
+paths_exclude_pattern = ["__pycache__/", "*.pyc"]
