@@ -7,7 +7,7 @@ from . import themes
 _target = None
 _colors = []
 _started = 0.0
-_duration = 0.35
+DURATION = 0.35
 
 
 def color_bindings(value, before, after):
@@ -45,12 +45,12 @@ def advance(now):
     global _target, _colors
     if _target is None:
         return None
-    t = min(1.0, max(0.0, (now - _started) / _duration))
-    if t >= 1.0:
+    if now >= _started + DURATION:
         target = _target
         _target, _colors = None, []
         themes.restore_theme(target)
         return None
+    t = max(0.0, (now - _started) / DURATION)
     # Smoothstep has zero velocity at both ends.
     weight = t * t * (3.0 - 2.0 * t)
     for value, key, start, end in _colors:
@@ -69,12 +69,8 @@ def frame():
         return None
 
 
-def begin(selection, duration):
-    global _target, _colors, _started, _duration
-    if duration <= 0:
-        before = themes.apply_theme(selection)
-        stop()
-        return before
+def begin(selection):
+    global _target, _colors, _started
     # Blender never draws between these synchronous operations. Read the target
     # through its native preset loader, then put the visible source back.
     before = themes.apply_theme(selection)
@@ -90,6 +86,6 @@ def begin(selection, duration):
         themes.restore_theme(target)
         return before
     _target, _colors = target, colors
-    _started, _duration = time.monotonic(), duration
+    _started = time.monotonic()
     bpy.app.timers.register(frame, first_interval=0.0)
     return before

@@ -13,14 +13,15 @@ def check(name, condition):
     checks.append(name)
     print('PASS:', name)
 def finish():
-    fade.advance(fade._started + fade._duration + 0.01)
+    fade.advance(fade._started + fade.DURATION + 0.01)
     fade.stop()
 addon.register()
 entry = bpy.context.preferences.addons.new()
 entry.module = 'system_theme_switcher'
 prefs = entry.preferences
 original = themes.capture_theme()
-check('animation enabled by default', prefs.smooth_transition and abs(prefs.transition_duration - 0.35) < 0.001)
+check('transition controls removed', 'smooth_transition' not in prefs.bl_rna.properties and 'transition_duration' not in prefs.bl_rna.properties)
+check('transition duration fixed', fade.DURATION == 0.35)
 themes.apply_theme(themes.BUILTIN_LIGHT)
 light = themes.capture_theme()
 themes.restore_theme(original)
@@ -29,7 +30,7 @@ check('no target flash at start', themes.capture_theme() == original)
 check('animation timer registered', bpy.app.timers.is_registered(fade.frame))
 check('colors found', len(fade._colors) > 100)
 obj, key, start, end = fade._colors[0]
-fade.advance(fade._started + fade._duration * 0.5)
+fade.advance(fade._started + fade.DURATION * 0.5)
 check('midpoint interpolates real RNA colors', all(abs(v - (a+b)/2) < 1e-5 for v,a,b in zip(getattr(obj,key), start,end)))
 check('midpoint differs from endpoints', themes.capture_theme() not in (original, light))
 check('non-color settings held until end', bpy.context.preferences.themes[0].filepath == original[0]['filepath'])
@@ -47,10 +48,10 @@ finish()
 check('light ends at exact theme including font styles', themes.capture_theme() == light)
 
 addon.sync_mode('DARK', prefs)
-fade.advance(fade._started + fade._duration * 0.2)
+fade.advance(fade._started + fade.DURATION * 0.2)
 before = themes.capture_theme()
 try:
-    fade.begin('/missing-theme.xml', .35)
+    fade.begin('/missing-theme.xml')
 except RuntimeError:
     pass
 check('failed replacement preserves visible state', themes.capture_theme() == before)
@@ -78,7 +79,7 @@ check('poll timer survives file load', bpy.app.timers.is_registered(addon.tick))
 addon.sync_mode('DARK', prefs)
 start_time = time.perf_counter()
 for i in range(21):
-    fade.advance(fade._started + fade._duration * i / 20)
+    fade.advance(fade._started + fade.DURATION * i / 20)
 print('21 frame updates elapsed ms:', round((time.perf_counter() - start_time) * 1000, 2))
 check('late frame still ends exactly', themes.capture_theme() == dark)
 fade.stop()

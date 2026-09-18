@@ -2,7 +2,7 @@
 import time
 
 import bpy
-from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy.app.handlers import persistent
 
 from .appearance import AppearanceProbe
@@ -35,7 +35,7 @@ def sync_mode(mode, prefs):
     selected = prefs.light_theme if mode == "LIGHT" else prefs.dark_theme
     key = (mode, selected)
     if _force or key != _applied:
-        before = transition.begin(selected, prefs.transition_duration if prefs.smooth_transition else 0)
+        before = transition.begin(selected)
         if _original is None:
             _original = before
         _applied = key
@@ -81,11 +81,6 @@ class STS_Preferences(bpy.types.AddonPreferences):
     )
     light_theme: StringProperty(default=themes.BUILTIN_LIGHT, update=changed)
     dark_theme: StringProperty(default=themes.BUILTIN_DARK, update=changed)
-    smooth_transition: BoolProperty(name="Smooth Color Transition", default=True)
-    transition_duration: FloatProperty(
-        name="Duration", default=0.35, min=0.1, max=1.5, subtype='TIME', unit='TIME',
-        description="Duration of the eased color transition in seconds",
-    )
 
     def draw(self, _context):
         layout = self.layout
@@ -95,11 +90,6 @@ class STS_Preferences(bpy.types.AddonPreferences):
             row = layout.row()
             row.label(text=f"{mode.title()} theme")
             row.menu(menu, text=themes.theme_label(selected))
-        row = layout.row()
-        row.prop(self, "smooth_transition")
-        duration = row.row()
-        duration.enabled = self.smooth_transition
-        duration.prop(self, "transition_duration")
         row = layout.row(align=True)
         row.enabled = self.enabled
         row.operator("sts.sync", icon='FILE_REFRESH')

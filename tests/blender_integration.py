@@ -8,7 +8,7 @@ import bpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import system_theme_switcher as addon
-from system_theme_switcher import themes
+from system_theme_switcher import themes, transition
 
 checks = []
 
@@ -19,21 +19,27 @@ def check(name, condition):
     print("PASS:", name)
 
 
+def sync_and_finish(mode, prefs):
+    addon.sync_mode(mode, prefs)
+    if transition.active():
+        transition.advance(transition._started + transition.DURATION + 0.01)
+        transition.stop()
+
+
 addon.register()
 entry = bpy.context.preferences.addons.new()
 entry.module = "system_theme_switcher"
 prefs = entry.preferences
-prefs.smooth_transition = False  # Immediate-mode regression checks; fades tested separately.
 initial = themes.capture_theme()
 check("timer registered", bpy.app.timers.is_registered(addon.tick))
 check("default preset choices", prefs.light_theme == themes.BUILTIN_LIGHT and prefs.dark_theme == themes.BUILTIN_DARK)
 check("bundled and installed themes discovered", len(themes.installed_themes()) >= 2)
 
-addon.sync_mode("LIGHT", prefs)
+sync_and_finish("LIGHT", prefs)
 light = themes.capture_theme()
 check("light changes theme", light != initial)
 check("original captured before first switch", addon._original == initial)
-addon.sync_mode("DARK", prefs)
+sync_and_finish("DARK", prefs)
 dark = themes.capture_theme()
 check("dark differs from light", dark != light)
 check("original retained across switches", addon._original == initial)
@@ -42,29 +48,29 @@ check("original retained across switches", addon._original == initial)
 ui = bpy.context.preferences.themes[0].user_interface
 ui.wcol_regular.inner = (0.1, 0.2, 0.3, 1.0)
 edited = themes.capture_theme()
-addon.sync_mode("DARK", prefs)
+sync_and_finish("DARK", prefs)
 check("unchanged mode does not reapply", themes.capture_theme() == edited)
 bpy.ops.sts.sync()
-addon.sync_mode("DARK", prefs)
+sync_and_finish("DARK", prefs)
 check("explicit sync reapplies", themes.capture_theme() == dark)
 
 # Changing the preset in the same OS mode must still trigger application.
 prefs.dark_theme = themes.BUILTIN_LIGHT
-addon.sync_mode("DARK", prefs)
-check("changing selection applies immediately", themes.capture_theme() == light)
+sync_and_finish("DARK", prefs)
+check("changing selection applies after transition", themes.capture_theme() == light)
 
 with tempfile.TemporaryDirectory() as directory:
     custom = Path(directory) / "Custom.xml"
     custom.write_text(themes.resolve_theme(themes.BUILTIN_DARK).read_text())
     prefs.dark_theme = str(custom)
-    addon.sync_mode("DARK", prefs)
+    sync_and_finish("DARK", prefs)
     check("custom XML preset applies", bpy.context.preferences.themes[0].filepath == str(custom))
     before_error = themes.capture_theme()
     previous_key = addon._applied
     custom.unlink()
     addon._force = True
     try:
-        addon.sync_mode("DARK", prefs)
+        sync_and_finish("DARK", prefs)
         raise AssertionError("missing theme accepted")
     except RuntimeError:
         pass

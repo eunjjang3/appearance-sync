@@ -2,10 +2,10 @@
 
 Tested on Blender 5.0.1, macOS Sequoia 15.7.4, arm64.
 
-- 58 checks passed: 8 appearance unit tests, 26 existing Blender integration checks, and 24 new transition checks.
+- 59 checks passed: 8 appearance unit tests, 26 Blender integration checks, and 25 transition checks. The transition effect toggle and duration preference have been removed; all switches use a fixed 0.35 seconds.
 - Transition checks exercise actual theme RNA: source preservation at start, interpolated midpoint, reversal from current colors, exact final colors and font settings, failed replacement, pause, restore, file loading, disable cleanup, and original backup preservation.
 - 21 color update steps took about 41 ms total in a background Blender process. This measures property updates only, not visible GUI rendering or guaranteed frame rate.
-- Blender extension ZIP build and validation passed for 0.2.0.
+- Blender extension ZIP build and validation passed for the earlier 0.2.0 package. The fixed-duration settings change is verified from source; that existing ZIP has not been rebuilt.
 - Visible GUI smoothness and live OS-toggle timing have not been visually verified. Native macOS animation API is not used; the add-on interpolates Blender theme colors with smoothstep easing.
 
 ## Previous 0.1.0 installation verification
