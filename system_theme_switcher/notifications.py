@@ -63,7 +63,7 @@ class AppearanceObserver:
                     self.on_change()
             except Exception as exc:
                 # Never let a Python exception unwind through a native callback.
-                print(f"System Theme Switcher: notification callback failed: {exc}")
+                print(f"Appearance Sync: notification callback failed: {exc}")
 
         self._cf, self._center, self._name, self._callback = cf, center, name, receive
         try:

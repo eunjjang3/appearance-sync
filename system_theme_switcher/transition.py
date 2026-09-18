@@ -65,7 +65,7 @@ def frame():
     except Exception as exc:
         # Do not leave a half-applied preset if a theme RNA reference expires.
         stop(finish=True)
-        print(f"System Theme Switcher: transition interrupted: {exc}")
+        print(f"Appearance Sync: transition interrupted: {exc}")
         return None
 
 
